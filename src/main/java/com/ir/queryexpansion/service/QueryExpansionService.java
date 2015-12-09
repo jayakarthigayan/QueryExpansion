@@ -30,7 +30,7 @@ public class QueryExpansionService {
 		QueryExpansionAlgos algos = new QueryExpansionAlgos();
 		final HashMap<String,String> expandedQueries 
 					= algos.getAllExpansions(queryExpReq.getQueryText(), 
-							queryExpReq.getMactchingDocs());
+							queryExpReq.getMatchingDocs());
 		System.out.println(expandedQueries);
 		response.setAssociationQuery(expandedQueries.get("associationQuery"));
 		response.setRoccioQuery(expandedQueries.get("roccioQuery"));

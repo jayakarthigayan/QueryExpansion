@@ -602,6 +602,186 @@ public class QueryExpansionAlgos {
 		return expandedQuery.toString();
 	}
 	
+	private double computeDistance(final String term1,
+						final String term2,
+						final String document)
+	{
+		double distance = 0.0;
+		final String[] fieldValues = document.split(";");
+		if(fieldValues != null && fieldValues.length > 0)
+		{			
+			for(final String value:fieldValues)
+			{
+				final List<String> tokens = new ArrayList<String>();
+				final List<String> stemTokens = new ArrayList<String>();
+				if(validToken(value) && (value.split(" ").length > 1))
+				{
+					getTokens(value.toLowerCase(), tokens, stemTokens, true);
+					
+					boolean crossedTerm1 = false;
+					boolean crossedTerm2 = false;
+					int position = 0;
+					int count = 0;
+					int minDist = document.length();
+					for(final String term:stemTokens)
+					{
+						count++;
+						if(term.equals(term1))
+						{
+							if(crossedTerm2)
+							{
+								int tempDist = count - position;
+								if(tempDist < minDist)
+								{
+									minDist = tempDist;
+								}
+								crossedTerm2 = false;
+							}
+							crossedTerm1 = true;
+							position = count;
+						}
+						else if(term.equals(term2))
+						{
+							if(crossedTerm1)
+							{
+								int tempDist = count - position;
+								if(tempDist < minDist)
+								{
+									minDist = tempDist;
+								}
+								crossedTerm1 = false;
+							}
+							crossedTerm2 = true;
+							position = count;
+						}				
+					}
+					if(minDist != document.length())
+					{
+						distance = minDist;
+					}
+				}
+			}			
+		}	
+		return distance;
+	}
+	
+	private double computeMetricCorrelation(final String term1,
+			final String term2, final List<String> matchedDocs)
+	{
+		double corrVal = 0.0;
+		if(TERMS.containsKey(term1) && TERMS.containsKey(term2))
+		{
+			final Iterator<PostingEntry> term1Entries 
+						= TERMS.get(term1).getPostingEntries().iterator();
+			final Iterator<PostingEntry> term2Entries 
+						= TERMS.get(term2).getPostingEntries().iterator();
+			if(term1Entries.hasNext() && term2Entries.hasNext())
+			{	
+				PostingEntry term1Entry = term1Entries.next();
+				PostingEntry term2Entry = term2Entries.next();
+				boolean first = true;
+				boolean moveEqual = false;
+				while((term1Entries.hasNext() && term2Entries.hasNext()) || (first))
+				{					
+					if(moveEqual)
+					{
+						term1Entry = term1Entries.next();
+						term2Entry = term2Entries.next();
+						moveEqual = false;
+					}
+					first = false;					
+					if(term1Entry.compareTo(term2Entry) == 0)
+					{						
+						double distance = computeDistance(term1, 
+										term2, 
+										matchedDocs.get(term1Entry.getDoc().getDocId()));
+						if(distance > 0.0)
+						{
+							corrVal += (1/distance);
+						}
+						moveEqual =true;
+					}
+					else if(term1Entry.compareTo(term2Entry) < 0)
+					{
+						while((term1Entry.compareTo(term2Entry) < 0) && 
+								term1Entries.hasNext())
+						{
+							term1Entry = term1Entries.next();
+						}
+					}
+					else
+					{
+						while((term1Entry.compareTo(term2Entry) > 0) && 
+								term2Entries.hasNext())
+						{
+							term2Entry = term2Entries.next();
+						}
+					}
+				}
+			}
+		}
+		return corrVal;
+	}
+	
+	private String expandUsingMetric(final TreeMap<String, Term> queryTerms, 
+			final String queryText,
+			final List<String> matchedDocs)
+	{
+		final StringBuffer expandedQuery = new StringBuffer(queryText);
+		for(final String queryTerm:queryTerms.keySet())
+		{
+			if(TERMS.containsKey(queryTerm))
+			{
+				final TreeMap<String,Double> relatedTermScores = new TreeMap<String,Double>();
+				for(final String localTerm:TERMS.keySet())
+				{
+					double metricCorr = computeMetricCorrelation(queryTerm, 
+							localTerm, 
+							matchedDocs);			
+					final Term term1 = TERMS.get(queryTerm);
+					final Term term2 = TERMS.get(localTerm);
+					relatedTermScores.put(localTerm, 
+								(metricCorr/(term1.getVocabularyTerms().size() * 
+												term2.getVocabularyTerms().size())));
+				}
+				if(!relatedTermScores.isEmpty())
+				{
+					int count =0;				
+					while(count < 2)
+					{
+						count++;
+						double maxScore = 0.0;
+						String maxRelatedTerm = "";
+						for(final String value:relatedTermScores.keySet())
+						{
+							if(relatedTermScores.get(value) > maxScore)
+							{
+								maxScore = relatedTermScores.get(value);
+								maxRelatedTerm = value;
+							}
+							
+						}
+						if(maxScore > 0.0 &&
+								!"".equals(maxRelatedTerm))
+						{
+							
+							relatedTermScores.remove(maxRelatedTerm);
+							for(final String voc:TERMS.get(maxRelatedTerm).getVocabularyTerms())
+							{
+								if(!expandedQuery.toString().contains(voc))
+								{
+									expandedQuery.append(" "+voc);
+								}
+							}
+						}
+					}
+				}
+			}
+		}		
+		
+		return expandedQuery.toString();
+	}
+	
 	public HashMap<String,String> getAllExpansions(final String queryText,
 											final List<String> matchedDocs)
 	{
@@ -615,6 +795,7 @@ public class QueryExpansionAlgos {
 		expandedQueries.put("roccioQuery", expandUsingRocchio(queryVector, queryText));
 		expandedQueries.put("associationQuery", expandUsingAssociation(queryTerms, queryText));
 		expandedQueries.put("scalarQuery", expandUsingScalar(queryTerms, queryText));
+		expandedQueries.put("metricQuery", expandUsingMetric(queryTerms, queryText, matchedDocs));
 		return expandedQueries;
 	}
 }

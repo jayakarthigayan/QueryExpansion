@@ -8,18 +8,18 @@ import org.codehaus.jackson.annotate.JsonAutoDetect;
 @JsonAutoDetect
 public class QueryExpansionRequest {
 	String queryText;		
-	List<String> mactchingDocs;
+	List<String> matchingDocs;
 
 	public QueryExpansionRequest() {
 		super();
 		this.queryText = "";
-		this.mactchingDocs = new ArrayList<String>();
+		this.matchingDocs = new ArrayList<String>();
 	}			
 
-	public QueryExpansionRequest(String queryText, List<String> mactchingDocs) {
+	public QueryExpansionRequest(String queryText, List<String> matchingDocs) {
 		super();
 		this.queryText = queryText;
-		this.mactchingDocs = mactchingDocs;
+		this.matchingDocs = matchingDocs;
 	}
 
 	public String getQueryText() {
@@ -30,24 +30,24 @@ public class QueryExpansionRequest {
 		this.queryText = queryText;
 	}
 
-	public List<String> getMactchingDocs() {
-		return mactchingDocs;
+	public List<String> getMatchingDocs() {
+		return matchingDocs;
 	}
 
-	public void setMactchingDocs(List<String> mactchingDocs) {
-		this.mactchingDocs = mactchingDocs;
+	public void setMatchingDocs(List<String> matchingDocs) {
+		this.matchingDocs = matchingDocs;
 	}
 
 	@Override
 	public String toString() {
-		return "QueryExpansionRequest [queryText=" + queryText + ", mactchingDocs=" + mactchingDocs + "]";
+		return "QueryExpansionRequest [queryText=" + queryText + ", matchingDocs=" + matchingDocs + "]";
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((mactchingDocs == null) ? 0 : mactchingDocs.hashCode());
+		result = prime * result + ((matchingDocs == null) ? 0 : matchingDocs.hashCode());
 		result = prime * result + ((queryText == null) ? 0 : queryText.hashCode());
 		return result;
 	}
@@ -61,10 +61,10 @@ public class QueryExpansionRequest {
 		if (getClass() != obj.getClass())
 			return false;
 		QueryExpansionRequest other = (QueryExpansionRequest) obj;
-		if (mactchingDocs == null) {
-			if (other.mactchingDocs != null)
+		if (matchingDocs == null) {
+			if (other.matchingDocs != null)
 				return false;
-		} else if (!mactchingDocs.equals(other.mactchingDocs))
+		} else if (!matchingDocs.equals(other.matchingDocs))
 			return false;
 		if (queryText == null) {
 			if (other.queryText != null)
